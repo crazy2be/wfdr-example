@@ -5,8 +5,8 @@ import (
 	"net/http"
 	// Local imports
 	"github.com/crazy2be/perms"
-	"util/pages"
-	"util/template"
+	"wfdr/pages"
+	"wfdr/template"
 	//"util/dlog"
 )
 

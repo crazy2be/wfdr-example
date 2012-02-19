@@ -5,7 +5,7 @@ import (
 	"net/http"
 	// Local imports
 	"github.com/crazy2be/user"
-	tmpl "util/template"
+	tmpl "wfdr/template"
 )
 
 func Handler(c http.ResponseWriter, r *http.Request) {

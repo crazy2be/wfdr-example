@@ -21,9 +21,9 @@ import (
 	"github.com/crazy2be/iomod"
 	"github.com/crazy2be/jsonutil"
 	"github.com/crazy2be/user"
-	"util/dlog"
-	"util/picasa"
-	"util/template"
+	"wfdr/dlog"
+	"wfdr/picasa"
+	"wfdr/template"
 )
 
 // Defined like this so that moving the actual definitions to an external file doesn't break things.

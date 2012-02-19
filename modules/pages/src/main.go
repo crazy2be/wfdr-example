@@ -6,8 +6,8 @@ import (
 	"strings"
 	// Local imports
 	"github.com/crazy2be/perms"
-	"util/pages"
-	tmpl "util/template"
+	"wfdr/pages"
+	tmpl "wfdr/template"
 )
 
 func SaveHandler(c http.ResponseWriter, r *http.Request) {

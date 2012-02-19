@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 	// Local imports
-	"util/pages"
-	tmpl "util/template"
+	"wfdr/pages"
+	tmpl "wfdr/template"
 	//"util/perms"
 )
 

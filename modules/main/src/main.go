@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 	// Local imports
-	"util/template"
+	"wfdr/template"
 )
 
 func Handler(c http.ResponseWriter, r *http.Request) {

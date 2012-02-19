@@ -17,15 +17,30 @@ if [ ! -d bin ]; then
 	mkdir bin
 fi
 
+echo -n "Building module $1: "
+
 if [ -f src/Makefile ]; then
 	echo "Using Makefile in src/"
 	cd src
 	if [ $recompile -eq 1 ]; then
-		gomake clean
+		make clean
 	fi
-	gomake
+	make
 	exit
 fi
 
-echo "No Makefile found. If this module should be compiled, consider adding a makefile."
+if ls src/*.go &> /dev/null; then
+	echo "Using go build"
+	cd src
+	# TODO: Recompile logic if required?
+	go build -o a.out *.go
+	status=$?
+	if [ $status -eq 0 ]; then
+		cp a.out ../bin/$1
+		exit
+	fi
+	exit $status
+fi
+
+echo "No Makefile and no go files found. If this module should be compiled, consider adding a makefile."
 exit 1

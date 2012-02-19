@@ -16,7 +16,7 @@ import (
 	// Local imports
 	"github.com/crazy2be/browser"
 	"github.com/crazy2be/httputil"
-	tmpl "util/template"
+	tmpl "wfdr/template"
 )
 
 var Servers = make(map[string]string, 10)

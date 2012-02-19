@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	// Local imports
-	"util/template"
+	"wfdr/template"
 )
 
 func main() {

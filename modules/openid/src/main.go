@@ -6,7 +6,7 @@ import (
 	"net/url"
 	// Local imports
 	"github.com/crazy2be/session"
-	"util/openid"
+	"wfdr/openid"
 )
 
 func Handler(c http.ResponseWriter, r *http.Request) {
@@ -55,7 +55,7 @@ func Handler(c http.ResponseWriter, r *http.Request) {
 
 func AuthHandler(c http.ResponseWriter, r *http.Request) {
 	var o = new(openid.OpenID)
-	o.ParseRPUrl(r.URL.Raw)
+	o.ParseRPUrl(r.URL.String())
 	grant, e := o.Verify()
 	if e != nil {
 		emsg := fmt.Sprintln("Error in openid auth handler:", e)
