@@ -6,24 +6,20 @@ import (
 	"net/url"
 	// Local imports
 	"github.com/crazy2be/session"
-	"wfdr/openid"
+	"github.com/fduraffourg/go-openid"
 )
 
 func Handler(c http.ResponseWriter, r *http.Request) {
 	host := r.Host
 	s := session.Get(c, r)
-	query, _ := url.ParseQuery(r.URL.RawQuery)
-	continueURLS := query["continue-url"]
-	continueURL := ""
-	if len(continueURLS) >= 1 {
-		continueURL = continueURLS[0]
-	}
-	if len(continueURL) == 0 {
+	
+	continueURL := r.URL.Query().Get("continue-url")
+	if continueURL == "" {
 		continueURL = "/"
 	}
-	fmt.Println(continueURL)
 	s.Set("openid-continue-url", continueURL)
-	fmt.Println(s.Get("openid-name-first"))
+	
+	// WTF?
 	baseUrl := "https://www.google.com/accounts/o8/ud"
 	var urlParams = map[string]string{
 		"openid.ns":                "http://specs.openid.net/auth/2.0",
@@ -43,22 +39,22 @@ func Handler(c http.ResponseWriter, r *http.Request) {
 		"openid.ext1.required":     "email,first,last,country,lang",
 		"openid.ns.oauth":          "http://specs.openid.net/extensions/oauth/1.0",
 		"openid.oauth.consumer":    host,
-		"openid.oauth.scope":       "http://picasaweb.google.com/data/"}
+		"openid.oauth.scope":       "http://picasaweb.google.com/data/",
+	}
+
 	queryURL := "?"
 	for name, value := range urlParams {
 		queryURL += url.QueryEscape(name) + "=" + url.QueryEscape(value) + "&"
 	}
 	queryURL = queryURL[0 : len(queryURL)-1]
-	fmt.Println(queryURL)
+
 	http.Redirect(c, r, baseUrl+queryURL, 307)
 }
 
 func AuthHandler(c http.ResponseWriter, r *http.Request) {
-	var o = new(openid.OpenID)
-	o.ParseRPUrl(r.URL.String())
-	grant, e := o.Verify()
-	if e != nil {
-		emsg := fmt.Sprintln("Error in openid auth handler:", e)
+	grant, _, err := openid.VerifyValues(r.URL.Query())
+	if err != nil {
+		emsg := fmt.Sprintln("Error in openid auth handler:", err)
 		fmt.Println(emsg)
 		fmt.Fprintln(c, emsg)
 		return
@@ -70,13 +66,17 @@ func AuthHandler(c http.ResponseWriter, r *http.Request) {
 	}
 	s := session.Get(c, r)
 	fmt.Println("Permission granted!")
-	fmt.Println(o)
-	wantedValues := []string{"value.email", "value.first", "value.last", "value.country", "value.lang"}
+	
+ 	wantedValues := []string{"value.email", "value.first", "value.last", "value.country", "value.lang"}
+ 	qvalues := r.URL.Query()
 	for _, wantedValue := range wantedValues {
-		value, _ := url.QueryUnescape(o.Params["openid.ext1."+wantedValue])
+		value, _ := url.QueryUnescape(qvalues.Get("openid.ext1."+wantedValue))
 		s.Set("openid-"+wantedValue[len("value."):], value)
 	}
-	id, _ := url.QueryUnescape(o.Params["openid.ext1.value.email"])
+	id, _ := url.QueryUnescape(qvalues.Get("openid.ext1.value.email"))
+	s.Set("openid-email", id)
+	fmt.Println("OpenID ID:", id)
+	
 	continueURL := s.Get("openid-continue-url")
 	if continueURL == "" {
 		continueURL = "/"
@@ -87,9 +87,15 @@ func AuthHandler(c http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func WhoamiHandler(c http.ResponseWriter, r *http.Request) {
+	s := session.Get(c, r)
+	fmt.Fprintln(c, "Authenticated as:", s.Get("openid-email"))
+}
+
 func main() {
 	fmt.Printf("Loading openid server...\n")
 	http.HandleFunc("/openid", Handler)
 	http.HandleFunc("/openid/auth", AuthHandler)
+	http.HandleFunc("/openid/whoami", WhoamiHandler)
 	http.ListenAndServe(":8160", nil)
 }
