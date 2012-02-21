@@ -3,11 +3,10 @@ package main
 import (
 	"fmt"
 	"net/http"
-	// Local imports
-	"github.com/crazy2be/perms"
+
+	"wfdr/perms"
 	"wfdr/pages"
 	"wfdr/template"
-	//"util/dlog"
 )
 
 func checkPerms(c http.ResponseWriter, r *http.Request, name string) bool {

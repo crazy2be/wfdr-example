@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
-	// Local imports
-	"github.com/crazy2be/user"
+
+	"wfdr/user"
 	tmpl "wfdr/template"
 )
 

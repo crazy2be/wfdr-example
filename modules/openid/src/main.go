@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	// Local imports
-	"github.com/crazy2be/session"
+
+	"wfdr/session"
 	"github.com/fduraffourg/go-openid"
 )
 

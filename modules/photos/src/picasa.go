@@ -4,26 +4,27 @@ package main
 // Loads JSON data structres from files in data/picasa, as well as handling user authentication and file upload requests (although the front-end is in the photo package).
 
 import (
-	"bytes"
-	"errors"
-	"fmt"
-	"io"
-	"io/ioutil"
 	"mime"
 	"mime/multipart"
+	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"os/exec"
 	"strconv"
+	"errors"
+	"bytes"
 	"time"
-	// Local imports
-	"github.com/crazy2be/iomod"
-	"github.com/crazy2be/jsonutil"
-	"github.com/crazy2be/user"
-	"wfdr/dlog"
+	"log"
+	"fmt"
+	"io"
+	"os"
+
+	"wfdr/user"
 	"wfdr/picasa"
 	"wfdr/template"
+
+	"github.com/crazy2be/iomod"
+	"github.com/crazy2be/jsonutil"
 )
 
 // Defined like this so that moving the actual definitions to an external file doesn't break things.
@@ -43,7 +44,7 @@ func init() {
 			albumsFilename := "data/picasa/albums.json"
 			jsonutil.DecodeFromFile(albumsFilename, &cachedAlbums)
 			for _, album := range cachedAlbums {
-				fmt.Println("album Link: ", album.Link, ", album ID: ", album.AlbumId)
+				log.Println("album Link: ", album.Link, ", album ID: ", album.AlbumId)
 				photosFilename := "data/picasa/albums/" + album.Link + ".json"
 				var photos []Photo
 				jsonutil.DecodeFromFile(photosFilename, &photos)
@@ -82,7 +83,7 @@ func AuthHandler(c http.ResponseWriter, r *http.Request) {
 	picasaLen := len("token=")
 	url, _ := url.QueryUnescape(r.URL.RawQuery)
 	token := url[picasaLen:]
-	fmt.Println(token, r.URL.RawQuery)
+	log.Println(token, r.URL.RawQuery)
 
 	// Try to upgrade the token to a multi-use one. See
 	// http://code.google.com/apis/accounts/docs/AuthSub.html
@@ -96,11 +97,11 @@ func AuthHandler(c http.ResponseWriter, r *http.Request) {
 	}
 	resp.Body.Close()
 	if len(body) <= picasaLen {
-		dlog.Println("Invalid or missing token! Response received was:", body)
+		log.Println("Invalid or missing token! Response received was:", body)
 		template.Error500(c, r, nil)
 	}
 	upgradedToken := body[picasaLen:]
-	fmt.Println("Upgraded Token: ", string(upgradedToken))
+	log.Println("Upgraded Token: ", string(upgradedToken))
 
 	// Finally, save the upgraded token in the server-side session.
 	u, _ := user.Get(c, r)
@@ -114,7 +115,7 @@ func UploadHandler(c http.ResponseWriter, r *http.Request) {
 	albumName, contentType, fileName, contentLength, fileReader, e := multipartUploadHandler(r)
 
 	if e != nil {
-		fmt.Println("Not multipart")
+		log.Println("Not multipart")
 
 		// Handle a normal POST request, likely from the html5 uploader.
 		albumName = r.Header.Get("X-Album-Name")
@@ -126,8 +127,8 @@ func UploadHandler(c http.ResponseWriter, r *http.Request) {
 	}
 
 	//var s *session.Session
-	fmt.Println("Handling upload request at /picasa/upload.")
-	fmt.Println(r)
+	log.Println("Handling upload request at /picasa/upload.")
+	log.Println(r)
 	s, e := user.GetExisting(r)
 	if e != nil {
 		fmt.Fprintln(c, "Invaid session. Please login.")
@@ -135,7 +136,7 @@ func UploadHandler(c http.ResponseWriter, r *http.Request) {
 	}
 	resp, e := uploadToPicasa(albumName, contentType, fileName, contentLength, s, fileReader)
 	if e != nil {
-		fmt.Println("Error uploading to picasa!", e)
+		log.Println("Error uploading to picasa!", e)
 		fmt.Fprintln(c, "Error uploading to picasa:", e)
 	}
 	handleError(resp, c)
@@ -159,7 +160,7 @@ func multipartUploadHandler(r *http.Request) (albumName, contentType, fileName, 
 	conlen, err := strconv.Atoi(sconlen)
 	// Picasa REQUIRES Content-Length!
 	if err != nil {
-		fmt.Println("No Content-Length header or invalid value!", sconlen)
+		log.Println("No Content-Length header or invalid value!", sconlen)
 		return
 	}
 
@@ -167,7 +168,7 @@ func multipartUploadHandler(r *http.Request) (albumName, contentType, fileName, 
 		var mpart *multipart.Part
 		mpart, err = mreader.NextPart()
 		if mpart != nil {
-			fmt.Println("Multipart handler:", mpart, mpart.FormName(), err)
+			log.Println("Multipart handler:", mpart, mpart.FormName(), err)
 		} else {
 			return
 		}
@@ -178,10 +179,10 @@ func multipartUploadHandler(r *http.Request) (albumName, contentType, fileName, 
 			var albumNameBytes []byte
 			albumNameBytes, err = ioutil.ReadAll(mpart)
 			if err != nil {
-				fmt.Println("Error reading album name!", albumName, err)
+				log.Println("Error reading album name!", albumName, err)
 				return
 			}
-			fmt.Println("Read", creader.Count, "bytes so far ( content-length is", r.Header["Content-Length"], ")")
+			log.Println("Read", creader.Count, "bytes so far ( content-length is", r.Header["Content-Length"], ")")
 			albumName = string(albumNameBytes)
 		case "Filedata":
 			contentType = mpart.Header.Get("Content-Type")
@@ -193,7 +194,7 @@ func multipartUploadHandler(r *http.Request) (albumName, contentType, fileName, 
 			}
 			fileName = mtypes["filename"]
 
-			fmt.Println("Read", creader.Count, "bytes so far ( content-length is", r.Header.Get("Content-Length"), ")")
+			log.Println("Read", creader.Count, "bytes so far ( content-length is", r.Header.Get("Content-Length"), ")")
 
 			// We have to do this, because it seems like the only reliable way to determine the size of the file... Hopefully the files they send are not too large...
 			// WARNING: Security vunerability with large files, could overrun the server.
@@ -237,8 +238,8 @@ func uploadToPicasa(album, contentType, filename, size string, u *user.User, fil
 	fmt.Fprintln(conn, "")
 	// Copy the file data to the connection
 	n, e := io.Copy(conn, file)
-	fmt.Println(n, "bytes copied")
-	fmt.Println("Sent request")
+	log.Println(n, "bytes copied")
+	log.Println("Sent request")
 	// Get the response and close the connection
 	resp, e = picasa.ReadFrom(conn, "POST")
 	conn.Close()

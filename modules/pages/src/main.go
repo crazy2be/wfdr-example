@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	// Local imports
-	"github.com/crazy2be/perms"
+
+	"wfdr/perms"
 	"wfdr/pages"
 	tmpl "wfdr/template"
 )
