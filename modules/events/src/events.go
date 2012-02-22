@@ -10,10 +10,9 @@ import (
 	"sort"
 	"strconv"
 	"time"
-	// Local imports
+
 	"wfdr/pages"
 	tmpl "wfdr/template"
-	//"util/perms"
 )
 
 type Time struct {
@@ -66,7 +65,7 @@ type Event struct {
 	Time       time.Time
 	Img        string
 	Importance int
-	PageData   *pages.PageData // nil on the main page.
+	Page       *pages.Page // nil on the main page.
 }
 
 // Allows events to be sorted by importance, removing wierd floating issues that exist otherwise.
@@ -145,10 +144,10 @@ func (event *Event) Load() (e error) {
 }
 
 // Loads the page data and content. Seperate from Load() because it requires more time than just loading the basic data, and is not required on the main page.
-func (event *Event) LoadPage(r *http.Request) (e error) {
-	pageData, e := pages.GetPageData("events/"+event.ID, r)
-	event.PageData = pageData
-	return
+func (event *Event) LoadPage(r *http.Request) (err error) {
+	page, err := pages.Load("events/"+event.ID)
+	event.Page = page
+	return err
 }
 
 // Saves the event data to disk. Caller must set event.ID before calling.

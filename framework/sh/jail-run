@@ -10,7 +10,7 @@ fi
 
 fname=`date`
 logfile="log/$fname"
-ln -s "$fname" log/latest
+ln -sf "$fname" log/latest
 
 # durp chroot only works for root durp
 #chroot .

@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
-	"strings"
 
 	"wfdr/perms"
 	"wfdr/pages"
@@ -17,45 +17,36 @@ func SaveHandler(c http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pageName := r.URL.Path[len("/pages/"):]
+	name := r.URL.Path[len("/pages/"):]
 
-	if strings.Index(pageName, ".") != -1 {
+	content := r.FormValue("content")
+	title := r.FormValue("title")
+
+	err := pages.Save(name, title, []byte(content))
+	if err != nil {
+		tmpl.Error500(c, r, err)
 		return
 	}
-
-	content := []byte(r.FormValue("content"))
-	title := []byte(r.FormValue("title"))
-
-	e := pages.SavePage(pageName, content, title)
-	if e != nil {
-		fmt.Fprintln(c, e)
-		return
-	}
-	http.Redirect(c, r, "/pages/"+pageName, 301)
+	http.Redirect(c, r, "/pages/"+name, 301)
 }
+
 func EditHandler(c http.ResponseWriter, r *http.Request) {
-	//var p tmpl.PageInfo
-	//p.Name = "pages/edit"
-	//p.Request = r
+	name := r.URL.Path[len("/pages/") : len(r.URL.Path)-len("/edit")]
+	log.Println("Editing page:", name)
+	
+	page, err := pages.Load(name)
+	if err != nil {
+		tmpl.Error500(c, r, err)
+		return
+	}
 
-	//perms := auth.GetPerms(r)
-	//p.Perms = perms
-
-	pagePath := r.URL.Path[len("/pages/") : len(r.URL.Path)-len("/edit")]
-	fmt.Println(pagePath)
-	pageData, _ := pages.GetPageData(pagePath, r)
-	//if e != nil {
-	//	p.Name = "errors/404"
-	//}
-
-	//p.Object = pageData
-
-	fmt.Println("Request for pages server. Responding.")
-	tmpl.Render(c, r, "Editinng "+pageData.Title, "edit", pageData)
+	log.Println("Request for pages server. Responding.")
+	
+	tmpl.Render(c, r, "Editing "+page.Title, "edit", page)
 }
 
 func ListHandler(c http.ResponseWriter, r *http.Request) {
-	plist := pages.GetPageList()
+	plist := pages.List()
 	tmpl.Render(c, r, "Pages list", "list", plist)
 	return
 }
@@ -66,31 +57,30 @@ func Handler(c http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rp := r.URL.Path
-	fmt.Println(rp, rp[len(rp)-len("/edit"):])
 	if rp[len(rp)-len("/edit"):] == "/edit" {
 		EditHandler(c, r)
 		return
 	}
-	if len(rp) == len("/pages/") {
+	if rp == "/pages/" {
 		ListHandler(c, r)
 		return
 	}
 
-	pageData, e := pages.GetPageData(r.URL.Path[len("/pages/"):], r)
-	if e != nil {
+	pageData, err := pages.Load(r.URL.Path[len("/pages/"):])
+	if err != nil {
 		// TODO: 404 Error
-		fmt.Println("Info: Page not found")
+		tmpl.Error404(c, r, err)
+		return
 	}
-	fmt.Println("Request for pages server. Responding.")
-	//tmpl.Execute(c, &p)
+	log.Println("Request for pages server. Responding.")
+	
 	tmpl.Render(c, r, pageData.Title, "main", pageData)
 }
 
 func main() {
 	fmt.Printf("Loading pages server...\n")
 	tmpl.SetModuleName("pages")
+	
 	http.HandleFunc("/pages/", Handler)
-	//http.HandleFunc("/pages/edit/", EditHandler)
-	//http.HandleFunc("/pages/save/", SaveHandler)
 	http.ListenAndServe(":8150", nil)
 }

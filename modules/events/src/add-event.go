@@ -10,8 +10,7 @@ import (
 	"os"
 	"strconv"
 	"time"
-	// Local imports
-	//"util/auth"
+
 	"wfdr/pages"
 	tmpl "wfdr/template"
 )
@@ -23,12 +22,6 @@ func EditHandler(c http.ResponseWriter, r *http.Request) {
 		SaveHandler(c, r)
 		return
 	}
-	//p := auth.GetPerms(r)
-	//var i tmpl.PageInfo
-	//i.Name = "events/edit"
-	//i.Title = "Add Event"
-	//i.Perms = p
-	//i.Request = r
 
 	// Makes the current data available to the template if available
 	evEdit := len("/events/edit/")
@@ -168,7 +161,7 @@ func SaveHandler(c http.ResponseWriter, r *http.Request) {
 		event.Img = "/img/events/data/" + fileName
 	}
 
-	e = pages.SavePage("events/"+string(id), body, title)
+	e = pages.Save("events/"+string(id), string(title), body)
 
 	event.Save()
 
