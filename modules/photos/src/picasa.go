@@ -104,7 +104,7 @@ func AuthHandler(c http.ResponseWriter, r *http.Request) {
 	log.Println("Upgraded Token: ", string(upgradedToken))
 
 	// Finally, save the upgraded token in the server-side session.
-	u, _ := user.Get(c, r)
+	u, _ := user.Get(r)
 	u.Set("picasa-authsub-token", string(upgradedToken))
 	http.Redirect(c, r, "/photos/upload", http.StatusFound)
 }
@@ -129,7 +129,7 @@ func UploadHandler(c http.ResponseWriter, r *http.Request) {
 	//var s *session.Session
 	log.Println("Handling upload request at /picasa/upload.")
 	log.Println(r)
-	s, e := user.GetExisting(r)
+	s, e := user.Get(r)
 	if e != nil {
 		fmt.Fprintln(c, "Invaid session. Please login.")
 		return

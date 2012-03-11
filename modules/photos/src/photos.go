@@ -41,7 +41,7 @@ type UploaderData struct {
 }
 
 func UploaderHandler(c http.ResponseWriter, r *http.Request) {
-	u, _ := user.Get(c, r)
+	u, _ := user.Get(r)
 	token := u.Get("picasa-authsub-token")
 	fmt.Println("Host:", r.Host)
 	albums := GetAlbums()

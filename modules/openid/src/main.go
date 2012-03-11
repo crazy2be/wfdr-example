@@ -6,18 +6,18 @@ import (
 	"net/url"
 
 	"wfdr/session"
+	"wfdr/template"
 	"github.com/fduraffourg/go-openid"
 )
 
 func Handler(c http.ResponseWriter, r *http.Request) {
 	host := r.Host
-	s := session.Get(c, r)
 	
 	continueURL := r.URL.Query().Get("continue-url")
 	if continueURL == "" {
 		continueURL = "/"
 	}
-	s.Set("openid-continue-url", continueURL)
+	session.Set(c, r, "openid-continue-url", continueURL)
 	
 	// WTF?
 	baseUrl := "https://www.google.com/accounts/o8/ud"
@@ -64,21 +64,27 @@ func AuthHandler(c http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(c, "Access denied by user or internal error.")
 		return
 	}
-	s := session.Get(c, r)
 	fmt.Println("Permission granted!")
 	
  	wantedValues := []string{"value.email", "value.first", "value.last", "value.country", "value.lang"}
  	qvalues := r.URL.Query()
 	for _, wantedValue := range wantedValues {
 		value, _ := url.QueryUnescape(qvalues.Get("openid.ext1."+wantedValue))
-		s.Set("openid-"+wantedValue[len("value."):], value)
+		err := session.Set(c, r, "openid-"+wantedValue[len("value."):], value)
+		if err != nil {
+			template.Error500(c, r, err)
+			return
+		}
 	}
 	id, _ := url.QueryUnescape(qvalues.Get("openid.ext1.value.email"))
-	s.Set("openid-email", id)
-	fmt.Println("OpenID ID:", id)
+	err = session.Set(c, r, "openid-email", id)
+	if err != nil {
+		template.Error500(c, r, err)
+		return
+	}
 	
-	continueURL := s.Get("openid-continue-url")
-	if continueURL == "" {
+	continueURL, err := session.Get(r, "openid-continue-url")
+	if err != nil || continueURL == "" {
 		continueURL = "/"
 	}
 	fmt.Println(c, r, continueURL)
@@ -88,8 +94,12 @@ func AuthHandler(c http.ResponseWriter, r *http.Request) {
 }
 
 func WhoamiHandler(c http.ResponseWriter, r *http.Request) {
-	s := session.Get(c, r)
-	fmt.Fprintln(c, "Authenticated as:", s.Get("openid-email"))
+	id, err := session.Get(r, "openid-email")
+	if err != nil {
+		template.Error500(c, r, err)
+		return
+	}
+	fmt.Fprintln(c, "Authenticated as:", id)
 }
 
 func main() {
